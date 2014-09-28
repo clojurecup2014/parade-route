@@ -1,6 +1,6 @@
 (ns hard.input
   (:import
-    [UnityEngine Input KeyCode Camera Physics]))
+    [UnityEngine Input KeyCode Camera Physics Time]))
   
 (declare mouse?)
  
@@ -60,7 +60,18 @@
 (defn mouse-ray []
 	(.ScreenPointToRay (Camera/main) (Input/mousePosition)))
 
-(defn ray-hit [ray]
-	;(.RayCast Physics ray 100.0 1)
-	)
+(defn ray-hit
+	([ray] (ray-hit ray 10000))
+	([^Ray ray ^double length ]
+		(let [hit (RaycastHit.)]
+			(Physics/Raycast ray (by-ref hit) length))))
+
+(defn ray-hits
+	;([ray] (ray-hit ray 100))
+	([^Ray ray ^double length ]
+		(let [hit (RaycastHit.)]
+			;(Physics/Raycast ray hit (float 100) (int 0))
+			(Physics/RaycastAll (.origin ray) (.direction ray) length)
+			)))
+
 
