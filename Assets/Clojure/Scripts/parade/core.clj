@@ -9,7 +9,7 @@
 (require 'unity.core)
 (use 'unity.messages 'hard.core 'hard.input)
 (declare handle-mouse-down)
-(declare brain game-map que pointer tiles)
+(declare brain game-map que pointer tiles tent)
 
    
  
@@ -20,31 +20,31 @@
 			  tile (mapv int (-v + [x z] [0.5 0.5]))]
 			  (position! pointer [x y z])
 			  (when-let [target (get @tiles tile)]
+			  	(when (:empty target)
+				  	(let [gob (:go (first @que))
+				  		  nt (make-tile)]
+				  		;destroy the clicked tile and replace with first in que
+				  		(log target)	
+				  		(set! (.name gob) (str tile))
+				  		(parent! gob game-map)	  	
+				  		(local-scale! gob [1 1 1])
+				  		(position! gob [(first tile) 0 (last tile)])
+				  		(log (gameobject? (:go target)))
+				  		
 
-			  	(let [gob (:go (first @que))
-			  		  nt (make-tile)]
-			  		;destroy the clicked tile and replace with first in que
-			  		(log target)	
-			  		(set! (.name gob) (str tile))
-			  		(parent! gob game-map)	  	
-			  		(local-scale! gob [1 1 1])
-			  		(position! gob [(first tile) 0 (last tile)])
-			  		(log (gameobject? (:go target)))
-			  		
-
-			  		;add new tile to que and update atoms
-			  		(local-scale! (:go nt) [2 2 2])
-			  		(position! (:go nt) [-2 -5 5])
-			  		(swap! que #(concat (rest %) [nt]))
-			  		(mapv 
-			  			#(position! (:go %) (-v + (vec3 (:go %)) [0 1 0])) 
-			  			 @que)
-			  		
-			  		(swap! tiles #(conj % {tile nt}))
-			  		(position! (:go target) [0 -1000 0])
+				  		;add new tile to que and update atoms
+				  		(local-scale! (:go nt) [2 2 2])
+				  		(position! (:go nt) [-2 -5 5])
+				  		(swap! que #(concat (rest %) [nt]))
+				  		(mapv 
+				  			#(position! (:go %) (-v + (vec3 (:go %)) [0 1 0])) 
+				  			 @que)
+				  		
+				  		(swap! tiles #(conj % {tile nt}))
+				  		(position! (:go target) [0 -1000 0])
 			  			
 
-			  	)))))
+			  	))))))
 
 
 (unity.core/defcomponent Brain []
@@ -55,6 +55,10 @@
 	(Start [this]
 		(log "hard core in parade Brain"))
 	(Update [this]
+		(.Rotate (.transform (find-name "background")) (vec3 [0 0.2 0]))
+		(set! 
+			(.text (.GetComponent (find-name "time") "GUIText")) 
+			(str (int (Time/timeSinceLevelLoad))))
 		(when (mouse-down?) 
 			(do
 				(log (Time/deltaTime))
@@ -67,10 +71,11 @@
 	 :road (resource "road")
 	 :road-curve (resource "road-curve")
 	 :road-intersection (resource "road-intersection")
-	 :pointer (resource "pointer")})
+	 :pointer (resource "pointer")
+	 :tent (resource "tent")})
 
 (defn make-tile []
-	(let [chosen (rand-nth [:road :road-curve :road-intersection])
+	(let [chosen (rand-nth [:road :road :road-curve :road-curve :road-intersection])
 		  base (clone! (:base fabs))
 		  road (clone! (chosen fabs))
 		  sig (chosen {:road [1 0 1 0]
@@ -85,13 +90,14 @@
 		  ))
 
 
-(destroy! [brain game-map pointer])
+(destroy! [brain game-map pointer tent])
 (when que
 	(map #(destroy! (:go %)) @que))
 (def brain (GameObject. "brain"))
 (.AddComponent brain Brain)
 (def game-map (GameObject. "game-map"))
 (def pointer (clone! (:pointer fabs) [0 -1000 0]))
+(def tent (clone! (:tent fabs) [10 0 5]))
 
 (def que 
 	(atom (doall (for 
@@ -109,7 +115,7 @@
  	   				(do 
  	   					(set! (.name t) (str x "-" z))
  	   					(parent! t game-map)
- 	   					{[x z] {:go t :sig [0 0 0 0]}} )))))
+ 	   					{[x z] {:empty true :go t :sig [0 0 0 0]}} )))))
 
  (doall
  	(for [iter (range 10)
