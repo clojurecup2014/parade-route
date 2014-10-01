@@ -22,7 +22,7 @@
 (defn key-up? [k]
 	(Input/GetKeyUp (kcode* k)))
 
-   
+    
 
 (defn ^:private mouse-code* [b]
 	(cond (#{0 1 2} b) b
